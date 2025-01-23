@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Location</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet-src.min.js" integrity="sha512-3/WyQrhTdqSVmSifQS62akgtNBhZha2lS44TnoN9Jk3J01FvsKK4suVmz6t5FtccGb5iJw58GoFhBjPE5EPc8Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <style>
+    #map {
+      height: 600px;
+      width: 600px;
+    }
+    .wrapper {
+      display: flex;
+      align-items: flex-start;
+    }
+    .block {
+      display: inline-block;
+      margin: 2px;
+    }
+  </style>
+
+</head>
+<body>
+  <div class="wrapper">
+    <div class="block" id="map"></div>
+    <div class="block" id="select block"></div>
+      <select id="click select" size="2">
+        <option value="alert" selected="selected">Alert</option>
+        <option value="target">Target</option>
+    </select>
+  </div>
+  
+ 
+</body>
+
+<script>
+var map = L.map('map');
+var landfill_coords = [55.578113,36.072915]
+map.setView(landfill_coords, 13);
+
+var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+navigator.geolocation.watchPosition(success, error);
+
+let marker, circle, zoomed, is_static;
+is_static = true;
+const iconBasicSize = [20, 20];
+const clickIconScale = 2.5;
+const iconClickSize = [];
+
+for (let key in iconBasicSize) {
+  iconClickSize.push(iconBasicSize.at(key) * clickIconScale);
+}
+
+
+const playerIcons = new Map();
+playerIcons.set("blue", L.icon({
+  iconUrl: './assets/blue team.svg',
+  iconSize: iconBasicSize,
+}));
+playerIcons.set("red", L.icon({
+  iconUrl: './assets/red team.svg',
+  iconSize: iconBasicSize,
+}));
+
+const clickIcons = new Map();
+clickIcons.set("alert", L.icon({
+  iconUrl: './assets/alert.svg',
+  iconSize: iconClickSize,
+}));
+clickIcons.set("target", L.icon({
+  iconUrl: './assets/target.svg',
+  iconSize: iconClickSize,
+}));
+
+
+const data = {
+  player1: {
+    coords: [55.578466, 36.071860],
+    title: "Player 1",
+    team: "blue",
+  },
+  player2: {
+    coords: [55.578640, 36.072471],
+    title: "Player 2",
+    team: "blue",
+  },
+  player3: {
+    coords: [55.578129, 36.071975],
+    title: "Player 3",
+    team: "red",
+  },
+}
+
+
+for (let key in data) {
+  const player = data[key];
+
+  L.marker(player.coords, {
+    title: player.title,
+    icon: playerIcons.get(player.team),
+  })
+  .bindPopup('<h1>${player.title}</h1>')
+  .addTo(map);
+}
+
+//click marker
+
+//on click function
+map.on("click", function(e){
+  var click_e = document.getElementById("click select");
+  var clickLayer = click_e.options[click_e.selectedIndex].value;
+  var clickIcon = clickIcons.get(clickLayer);
+  var markerOptions = {
+    icon: clickIcon,
+    draggable: true,
+  }
+  console.log(clickLayer)
+   var mouseClick = new L.Marker([e.latlng.lat, e.latlng.lng], markerOptions)
+    .addTo(map)
+    .on('click', e=> e.target.remove());
+})
+
+function success(pos){
+  const lat = pos.coords.latitude;
+  const lng = pos.coords.longitude;
+  const accuracy = pos.coords.accuracy;
+
+  // if (marker) {
+  //   map.removeLayer(marker);
+  //   map.removeLayer(circle);
+  // }
+  
+  // marker = L.marker([lat, lng]).addTo(map);
+   circle = L.circle([lat, lng], { radius: accuracy }).addTo(map);
+
+
+  if (!zoomed) {
+    zoomed = map.fitBounds(circle.getBounds());
+  }
+
+  if (!is_static) {
+    map.setView([lat, lng]);
+  } else {
+    map.setView(landfill_coords);
+  }
+
+}
+
+function error(err) {
+  if (err.code === 1) {
+    alert("Please allow geolaction access");
+  } else {
+    alert("Cannot get current location")
+  }
+}
+
+ var EsriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+
+var Stadia_AlidadeSmoothDark = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}', {
+	minZoom: 0,
+	maxZoom: 20,
+	attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	ext: 'png'
+});
+
+//Leaflet layer control
+var baseMaps = {
+  'Open Street Map': osm,
+  'Satellite': EsriWorldImagery,
+  'Dark': Stadia_AlidadeSmoothDark
+}
+
+L.control.layers(baseMaps).addTo(map);
+
+</script>
+</html>
+
